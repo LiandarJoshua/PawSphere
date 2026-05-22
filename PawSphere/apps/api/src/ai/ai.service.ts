@@ -25,7 +25,7 @@ export class AiService {
     private readonly config: ConfigService,
     private readonly notifications: NotificationsService,
   ) {
-    const key = this.config.get<string>('GROQ_API_KEY');
+    const key = process.env.GROQ_API_KEY || this.config.get<string>('GROQ_API_KEY');
     this.groq = key ? new Groq({ apiKey: key }) : null;
     if (!this.groq) {
       this.logger.warn('GROQ_API_KEY not set — AI features will use demo mode');
