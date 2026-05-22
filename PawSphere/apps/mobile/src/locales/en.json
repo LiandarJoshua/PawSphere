@@ -1,0 +1,67 @@
+{
+  "common": {
+    "appName": "PawSphere",
+    "loading": "Loading...",
+    "error": "Something went wrong",
+    "retry": "Try Again",
+    "cancel": "Cancel",
+    "save": "Save",
+    "delete": "Delete",
+    "edit": "Edit",
+    "done": "Done",
+    "next": "Next",
+    "back": "Back",
+    "or": "or"
+  },
+  "auth": {
+    "welcomeTitle": "Welcome to PawSphere",
+    "welcomeSubtitle": "Your complete pet care companion",
+    "emailLabel": "Email Address",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "••••••••",
+    "loginButton": "Sign In",
+    "registerButton": "Create Account",
+    "noAccount": "Don't have an account?",
+    "hasAccount": "Already have an account?",
+    "signUp": "Sign Up",
+    "signIn": "Sign In",
+    "forgotPassword": "Forgot Password?"
+  },
+  "tabs": {
+    "home": "Home",
+    "discovery": "Discover",
+    "alerts": "Alerts",
+    "chat": "Chat",
+    "profile": "Profile"
+  },
+  "pets": {
+    "myPets": "My Pets",
+    "addPet": "Add Pet",
+    "noPets": "No pets yet",
+    "noPetsSubtitle": "Add your first pet to get started",
+    "name": "Name",
+    "species": "Species",
+    "breed": "Breed",
+    "dateOfBirth": "Date of Birth",
+    "vaccinations": "Vaccinations",
+    "medicalHistory": "Medical History",
+    "nextDue": "Next due"
+  },
+  "discovery": {
+    "nearby": "Nearby Services",
+    "vets": "Veterinarians",
+    "groomers": "Groomers",
+    "searchPlaceholder": "Search services..."
+  },
+  "alerts": {
+    "lostPet": "Lost Pet Alert",
+    "reportLost": "Report Lost Pet",
+    "lastSeen": "Last seen",
+    "community": "Community Alerts"
+  },
+  "ai": {
+    "reminders": "Care Reminders",
+    "poweredBy": "Powered by AI"
+  }
+}

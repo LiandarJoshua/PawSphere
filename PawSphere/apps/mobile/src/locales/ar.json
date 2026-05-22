@@ -1,0 +1,67 @@
+{
+  "common": {
+    "appName": "باوسفير",
+    "loading": "جارٍ التحميل...",
+    "error": "حدث خطأ ما",
+    "retry": "حاول مرة أخرى",
+    "cancel": "إلغاء",
+    "save": "حفظ",
+    "delete": "حذف",
+    "edit": "تعديل",
+    "done": "تم",
+    "next": "التالي",
+    "back": "رجوع",
+    "or": "أو"
+  },
+  "auth": {
+    "welcomeTitle": "مرحباً في باوسفير",
+    "welcomeSubtitle": "رفيقك المتكامل لرعاية الحيوانات الأليفة",
+    "emailLabel": "البريد الإلكتروني",
+    "emailPlaceholder": "you@example.com",
+    "passwordLabel": "كلمة المرور",
+    "passwordPlaceholder": "••••••••",
+    "loginButton": "تسجيل الدخول",
+    "registerButton": "إنشاء حساب",
+    "noAccount": "ليس لديك حساب؟",
+    "hasAccount": "لديك حساب بالفعل؟",
+    "signUp": "إنشاء حساب",
+    "signIn": "تسجيل الدخول",
+    "forgotPassword": "نسيت كلمة المرور؟"
+  },
+  "tabs": {
+    "home": "الرئيسية",
+    "discovery": "اكتشف",
+    "alerts": "التنبيهات",
+    "chat": "المحادثات",
+    "profile": "الملف الشخصي"
+  },
+  "pets": {
+    "myPets": "حيواناتي الأليفة",
+    "addPet": "إضافة حيوان أليف",
+    "noPets": "لا توجد حيوانات أليفة بعد",
+    "noPetsSubtitle": "أضف حيوانك الأليف الأول للبدء",
+    "name": "الاسم",
+    "species": "النوع",
+    "breed": "السلالة",
+    "dateOfBirth": "تاريخ الميلاد",
+    "vaccinations": "التطعيمات",
+    "medicalHistory": "السجل الطبي",
+    "nextDue": "الموعد القادم"
+  },
+  "discovery": {
+    "nearby": "الخدمات القريبة",
+    "vets": "أطباء بيطريون",
+    "groomers": "صالونات تجميل",
+    "searchPlaceholder": "ابحث عن خدمات..."
+  },
+  "alerts": {
+    "lostPet": "تنبيه: حيوان أليف مفقود",
+    "reportLost": "الإبلاغ عن مفقود",
+    "lastSeen": "آخر ظهور",
+    "community": "تنبيهات المجتمع"
+  },
+  "ai": {
+    "reminders": "تذكيرات الرعاية",
+    "poweredBy": "مدعوم بالذكاء الاصطناعي"
+  }
+}

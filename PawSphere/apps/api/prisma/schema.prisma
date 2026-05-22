@@ -1,0 +1,548 @@
+// PawSphere — Prisma schema for Supabase (PostgreSQL + PostGIS)
+// Run `npx prisma db push` from apps/api to sync with Supabase.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Enums ────────────────────────────────────────────────────────────────────
+
+enum Role {
+  OWNER
+  PROVIDER
+  ADMIN
+}
+
+enum Language {
+  en
+  ar
+}
+
+enum Species {
+  DOG
+  CAT
+  BIRD
+  RABBIT
+  REPTILE
+  FISH
+  OTHER
+}
+
+enum ServiceType {
+  VET
+  GROOMER
+  PET_STORE
+  PET_HOTEL
+  TRAINER
+}
+
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum AlertStatus {
+  ACTIVE
+  FOUND
+  CLOSED
+}
+
+enum SitterBookingStatus {
+  PENDING
+  ACCEPTED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum PostCategory {
+  COMMUNITY
+  MISSING_PET
+  MARKETPLACE
+}
+
+// ─── Models ───────────────────────────────────────────────────────────────────
+
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  phone       String?
+  displayName String?   @map("display_name")
+  avatarUrl   String?   @map("avatar_url")
+  bio         String?
+  isPublic    Boolean   @default(true) @map("is_public")
+  role        Role      @default(OWNER)
+  language    Language  @default(en)
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  household               Household?
+  bookings                Booking[]
+  lostPetAlerts           LostPetAlert[]
+  aiReminders             AIReminder[]
+  messages                Message[]
+  sitterProfile           SitterProfile?
+  sitterReviewsGiven      SitterReview[]    @relation("reviewer")
+  sitterBookingsAsOwner   SitterBooking[]   @relation("sitterBookingOwner")
+  posts                   Post[]
+  comments                Comment[]
+  postLikes               PostLike[]
+  pushTokens              PushToken[]
+  dmSent                  DirectMessage[]   @relation("dmSent")
+  dmReceived              DirectMessage[]   @relation("dmReceived")
+  following               Follow[]          @relation("follower")
+  followers               Follow[]          @relation("following")
+  providerReviewsGiven    ProviderReview[]  @relation("providerReviewer")
+  householdMemberships    HouseholdMember[]
+
+  @@map("users")
+}
+
+model Household {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String   @unique @map("owner_id")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  owner   User              @relation(fields: [ownerId], references: [id], onDelete: Cascade)
+  pets    Pet[]
+  members HouseholdMember[]
+
+  @@map("households")
+}
+
+model Pet {
+  id          String    @id @default(uuid())
+  householdId String    @map("household_id")
+  name        String
+  species     Species   @default(DOG)
+  breed       String?
+  dob         DateTime?
+  avatarUrl   String?   @map("avatar_url")
+  medicalInfo String?   @map("medical_info")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  household      Household      @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  vaccinations   Vaccination[]
+  bookings       Booking[]
+  lostPetAlerts  LostPetAlert[]
+  aiReminders    AIReminder[]
+  sitterBookings SitterBooking[]
+  weightLogs     WeightLog[]
+  medications    Medication[]
+  vetVisits      VetVisit[]
+  activityLogs   ActivityLog[]
+
+  @@map("pets")
+}
+
+model Vaccination {
+  id             String    @id @default(uuid())
+  petId          String    @map("pet_id")
+  vaccineName    String    @map("vaccine_name")
+  administeredAt DateTime  @map("administered_at")
+  nextDueDate    DateTime? @map("next_due_date")
+  notes          String?
+  documentUrls   String[]  @default([]) @map("document_urls")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@map("vaccinations")
+}
+
+model Provider {
+  id           String      @id @default(uuid())
+  userId       String?     @map("user_id")
+  serviceType  ServiceType @map("service_type")
+  businessName String      @map("business_name")
+  description  String?
+  phone        String?
+  address      String?
+  // Stored as floats; PostGIS functions applied via $queryRaw for geospatial queries
+  latitude     Float
+  longitude    Float
+  rating       Float       @default(0)
+  isVerified   Boolean     @default(false) @map("is_verified")
+  websiteUrl   String?     @map("website_url")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  bookings  Booking[]
+  timeSlots TimeSlot[]
+  reviews   ProviderReview[]
+
+  @@map("providers")
+}
+
+model Booking {
+  id                    String        @id @default(uuid())
+  userId                String        @map("user_id")
+  providerId            String        @map("provider_id")
+  petId                 String        @map("pet_id")
+  status                BookingStatus @default(PENDING)
+  scheduledAt           DateTime      @map("scheduled_at")
+  totalPrice            Float         @map("total_price")
+  notes                 String?
+  stripePaymentIntentId String?       @map("stripe_payment_intent_id")
+  refundId              String?       @map("refund_id")
+  attachmentUrls        String[]      @default([]) @map("attachment_urls")
+  timeSlotId            String?       @unique @map("time_slot_id")
+  createdAt             DateTime      @default(now()) @map("created_at")
+  updatedAt             DateTime      @updatedAt @map("updated_at")
+
+  user     User      @relation(fields: [userId], references: [id])
+  provider Provider  @relation(fields: [providerId], references: [id])
+  pet      Pet       @relation(fields: [petId], references: [id])
+  timeSlot TimeSlot? @relation(fields: [timeSlotId], references: [id])
+  messages Message[]
+  review   ProviderReview?
+
+  @@map("bookings")
+}
+
+model LostPetAlert {
+  id              String      @id @default(uuid())
+  userId          String      @map("user_id")
+  petId           String      @map("pet_id")
+  qrTagId         String      @unique @map("qr_tag_id")
+  status          AlertStatus @default(ACTIVE)
+  lastSeenLat     Float?      @map("last_seen_lat")
+  lastSeenLng     Float?      @map("last_seen_lng")
+  lastSeenAddress String?     @map("last_seen_address")
+  description     String?
+  contactPhone    String?     @map("contact_phone")
+  createdAt       DateTime    @default(now()) @map("created_at")
+  updatedAt       DateTime    @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id])
+  pet  Pet  @relation(fields: [petId], references: [id])
+
+  @@map("lost_pet_alerts")
+}
+
+model Message {
+  id        String   @id @default(uuid())
+  bookingId String   @map("booking_id")
+  senderId  String   @map("sender_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  booking Booking @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  sender  User    @relation(fields: [senderId], references: [id])
+
+  @@map("messages")
+}
+
+model AIReminder {
+  id        String   @id @default(uuid())
+  petId     String   @map("pet_id")
+  userId    String   @map("user_id")
+  content   String
+  isRead    Boolean  @default(false) @map("is_read")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  pet  Pet  @relation(fields: [petId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id])
+
+  @@map("ai_reminders")
+}
+
+// ─── Community Feed ───────────────────────────────────────────────────────────
+
+model Post {
+  id          String       @id @default(uuid())
+  authorId    String       @map("author_id")
+  category    PostCategory @default(COMMUNITY)
+  content     String
+  petName     String?      @map("pet_name")
+  location    String?
+  contactInfo String?      @map("contact_info")
+  itemName    String?      @map("item_name")
+  price       Float?
+  imageUrls   String[]     @default([]) @map("image_urls")
+  likes       Int          @default(0)
+  createdAt   DateTime     @default(now()) @map("created_at")
+  updatedAt   DateTime     @updatedAt @map("updated_at")
+
+  author   User       @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments Comment[]
+  postLikes PostLike[]
+
+  @@map("posts")
+}
+
+model PostLike {
+  postId    String   @map("post_id")
+  userId    String   @map("user_id")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([postId, userId])
+  @@map("post_likes")
+}
+
+// ─── Pet Sitters ──────────────────────────────────────────────────────────────
+
+model SitterProfile {
+  id          String   @id @default(uuid())
+  userId      String   @unique @map("user_id")
+  displayName String   @map("display_name")
+  bio         String?
+  experience  Int      @default(0)
+  hourlyRate  Float    @map("hourly_rate")
+  dailyRate   Float?   @map("daily_rate")
+  phone       String?
+  city        String?
+  latitude    Float?
+  longitude   Float?
+  isAvailable Boolean  @default(true) @map("is_available")
+  rating      Float    @default(0)
+  reviewCount Int      @default(0) @map("review_count")
+  specialties String[] // stored as text array: DOG, CAT, BIRD, SMALL_ANIMAL, REPTILE
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  user         User                 @relation(fields: [userId], references: [id], onDelete: Cascade)
+  reviews      SitterReview[]
+  bookings     SitterBooking[]
+  availability SitterAvailability[]
+
+  @@map("sitter_profiles")
+}
+
+model SitterReview {
+  id         String   @id @default(uuid())
+  sitterId   String   @map("sitter_id")
+  reviewerId String   @map("reviewer_id")
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  sitter   SitterProfile @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+  reviewer User          @relation("reviewer", fields: [reviewerId], references: [id])
+
+  @@map("sitter_reviews")
+}
+
+model SitterBooking {
+  id         String              @id @default(uuid())
+  sitterId   String              @map("sitter_id")
+  ownerId    String              @map("owner_id")
+  petId      String              @map("pet_id")
+  startDate  DateTime            @map("start_date")
+  endDate    DateTime            @map("end_date")
+  notes      String?
+  status     SitterBookingStatus @default(PENDING)
+  totalPrice Float               @map("total_price")
+  createdAt  DateTime            @default(now()) @map("created_at")
+  updatedAt  DateTime            @updatedAt @map("updated_at")
+
+  sitter SitterProfile @relation(fields: [sitterId], references: [id])
+  owner  User          @relation("sitterBookingOwner", fields: [ownerId], references: [id])
+  pet    Pet           @relation(fields: [petId], references: [id])
+
+  @@map("sitter_bookings")
+}
+
+// ─── Comments ─────────────────────────────────────────────────────────────────
+
+model Comment {
+  id        String   @id @default(uuid())
+  postId    String   @map("post_id")
+  authorId  String   @map("author_id")
+  content   String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  post   Post @relation(fields: [postId], references: [id], onDelete: Cascade)
+  author User @relation(fields: [authorId], references: [id], onDelete: Cascade)
+
+  @@map("comments")
+}
+
+// ─── Pet Health ───────────────────────────────────────────────────────────────
+
+model WeightLog {
+  id       String   @id @default(uuid())
+  petId    String   @map("pet_id")
+  weight   Float
+  notes    String?
+  loggedAt DateTime @default(now()) @map("logged_at")
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@map("weight_logs")
+}
+
+model Medication {
+  id        String    @id @default(uuid())
+  petId     String    @map("pet_id")
+  name      String
+  dosage    String?
+  frequency String?
+  startDate DateTime  @map("start_date")
+  endDate   DateTime? @map("end_date")
+  notes     String?
+  isActive  Boolean   @default(true) @map("is_active")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@map("medications")
+}
+
+model VetVisit {
+  id           String    @id @default(uuid())
+  petId        String    @map("pet_id")
+  visitDate    DateTime  @map("visit_date")
+  reason       String
+  notes        String?
+  vetName      String?   @map("vet_name")
+  nextVisit    DateTime? @map("next_visit")
+  cost         Float?
+  documentUrls String[]  @default([]) @map("document_urls")
+  createdAt    DateTime  @default(now()) @map("created_at")
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@map("vet_visits")
+}
+
+// ─── Push Notifications ───────────────────────────────────────────────────────
+
+model PushToken {
+  id        String   @id @default(uuid())
+  userId    String   @map("user_id")
+  token     String
+  platform  String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, token])
+  @@map("push_tokens")
+}
+
+// ─── Social Graph ─────────────────────────────────────────────────────────────
+
+model Follow {
+  id          String   @id @default(uuid())
+  followerId  String   @map("follower_id")
+  followingId String   @map("following_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  follower  User @relation("follower", fields: [followerId], references: [id], onDelete: Cascade)
+  following User @relation("following", fields: [followingId], references: [id], onDelete: Cascade)
+
+  @@unique([followerId, followingId])
+  @@map("follows")
+}
+
+// ─── Direct Messages ──────────────────────────────────────────────────────────
+
+model DirectMessage {
+  id          String   @id @default(uuid())
+  senderId    String   @map("sender_id")
+  recipientId String   @map("recipient_id")
+  content     String
+  isRead      Boolean  @default(false) @map("is_read")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  sender    User @relation("dmSent", fields: [senderId], references: [id])
+  recipient User @relation("dmReceived", fields: [recipientId], references: [id])
+
+  @@map("direct_messages")
+}
+
+// ─── Provider Reviews ────────────────────────────────────────────────────────
+
+model ProviderReview {
+  id         String   @id @default(uuid())
+  providerId String   @map("provider_id")
+  reviewerId String   @map("reviewer_id")
+  bookingId  String?  @unique @map("booking_id")
+  rating     Int
+  comment    String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  reviewer User     @relation("providerReviewer", fields: [reviewerId], references: [id])
+  booking  Booking? @relation(fields: [bookingId], references: [id])
+
+  @@map("provider_reviews")
+}
+
+// ─── Household Members ────────────────────────────────────────────────────────
+
+model HouseholdMember {
+  id          String   @id @default(uuid())
+  householdId String   @map("household_id")
+  userId      String   @map("user_id")
+  role        String   @default("MEMBER")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  household Household @relation(fields: [householdId], references: [id], onDelete: Cascade)
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([householdId, userId])
+  @@map("household_members")
+}
+
+// ─── Activity Logs ────────────────────────────────────────────────────────────
+
+model ActivityLog {
+  id          String   @id @default(uuid())
+  petId       String   @map("pet_id")
+  type        String
+  notes       String?
+  durationMin Int?     @map("duration_min")
+  amount      String?
+  loggedAt    DateTime @default(now()) @map("logged_at")
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@map("activity_logs")
+}
+
+// ─── Sitter Availability ─────────────────────────────────────────────────────
+
+model SitterAvailability {
+  id        String   @id @default(uuid())
+  sitterId  String   @map("sitter_id")
+  startDate DateTime @map("start_date")
+  endDate   DateTime @map("end_date")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  sitter SitterProfile @relation(fields: [sitterId], references: [id], onDelete: Cascade)
+
+  @@map("sitter_availability")
+}
+
+// ─── Appointment Slots ────────────────────────────────────────────────────────
+
+model TimeSlot {
+  id          String   @id @default(uuid())
+  providerId  String   @map("provider_id")
+  startsAt    DateTime @map("starts_at")
+  durationMin Int      @default(30) @map("duration_min")
+  price       Float?
+  isBooked    Boolean  @default(false) @map("is_booked")
+  label       String?
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  provider Provider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+  booking  Booking?
+
+  @@map("time_slots")
+}
