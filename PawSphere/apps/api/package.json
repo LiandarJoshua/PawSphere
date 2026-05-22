@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "build": "nest build",
+    "build": "npx tsc -p tsconfig.build.json",
     "dev": "nest start --watch",
     "start": "node dist/main",
     "lint": "eslint \"{src,test}/**/*.ts\"",
